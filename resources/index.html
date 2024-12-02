@@ -1,0 +1,140 @@
+        <!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADB Toolkit</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div id="wrapper" class="d-flex">
+        <!-- Sidebar -->
+        <div id="sidebar-wrapper" class="bg-dark text-white p-3">
+            <h2>ADB Toolkit</h2>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="#" id="linkADB">ADB</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="#" id="linkFastboot">Fastboot</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white" href="#" id="linkScrcpy">Scrcpy</a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Page Content -->
+        <div id="page-content-wrapper" class="container mt-5">
+            <!-- Theme Toggle -->
+            <div class="text-right mb-3">
+                <button id="themeToggle" class="btn btn-light">Switch to Dark Mode</button>
+            </div>
+
+            <!-- ADB Section -->
+            <div id="adbSection" class="content-section">
+                <h1 class="text-center">ADB Toolkit</h1>
+                <p id="info" class="text-center">Connected Devices:</p>
+                <div class="form-group">
+                    <select id="devicesDropdown" class="form-control"></select>
+                </div>
+                <div class="text-center mb-3">
+                    <button class="btn btn-primary" onclick="refreshDevices()">Refresh Devices</button>
+                    <button class="btn btn-secondary" onclick="runFastboot()">Fastboot Mode</button>
+                    <button class="btn btn-success" onclick="sideloadZip()">Sideload ZIP</button>
+                    <button class="btn btn-warning" onclick="rebootToRecovery()">Reboot to Recovery</button>
+                </div>
+                <div class="form-group">
+                    <label for="recoveryZip">Choose Recovery ZIP:</label>
+                    <input type="file" id="recoveryZip" class="form-control" accept=".zip" />
+                </div>
+                <h3 class="mt-4">Command Output:</h3>
+                <pre id="commandOutput" class="bg-dark text-white p-3"></pre>
+            </div>
+
+            <!-- Fastboot Section -->
+            <div id="fastbootSection" class="content-section" style="display:none;">
+                <h1>Fastboot Mode</h1>
+                <p>Fastboot specific actions will go here.</p>
+            </div>
+
+            <!-- Scrcpy Section -->
+<div id="scrcpySection" class="content-section" style="display:none;">
+    <h1>Scrcpy</h1>
+    <p>Configure and start Scrcpy with the following options:</p>
+    
+    <!-- Scrcpy Parameters Form -->
+    <form id="scrcpyForm">
+        <div class="form-group">
+            <label for="screenResolution">Resolution:</label>
+            <select id="screenResolution" class="form-control">
+                <option value="1024x768">1024x768</option>
+                <option value="1280x720">1280x720</option>
+                <option value="1920x1080">1920x1080</option>
+                <option value="auto">Auto</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="bitRate">Bitrate:</label>
+            <select id="bitRate" class="form-control">
+                <option value="8M">8M</option>
+                <option value="16M">16M</option>
+                <option value="32M">32M</option>
+                <option value="64M">64M</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="maxFps">Max FPS:</label>
+            <select id="maxFps" class="form-control">
+                <option value="30">30</option>
+                <option value="60">60</option>
+                <option value="15">15</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="showTouches">Show Touches:</label>
+            <select id="showTouches" class="form-control">
+                <option value="true">True</option>
+                <option value="false">False</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="noControl">Disable Control:</label>
+            <select id="noControl" class="form-control">
+                <option value="false">False</option>
+                <option value="true">True</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="fullscreen">Fullscreen:</label>
+            <select id="fullscreen" class="form-control">
+                <option value="false">False</option>
+                <option value="true">True</option>
+            </select>
+        </div>
+
+        <button type="button" class="btn btn-primary" onclick="startScrcpy()">Start Scrcpy</button>
+    </form>
+
+    <!-- Output Area -->
+    <h3 class="mt-4">Command Output:</h3>
+    <pre id="scrcpyOutput" class="bg-dark text-white p-3"></pre>
+</div>
+
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="/js/neutralino.js"></script>
+    <script src="/js/main.js"></script>
+</body>
+</html>

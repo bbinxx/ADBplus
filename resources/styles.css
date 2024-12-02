@@ -1,0 +1,91 @@
+/* styles.css */
+body {
+    font-family: Arial, sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+#sidebar-wrapper {
+    width: 220px; /* Reduced sidebar width */
+    min-height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    background-color: #343a40;
+    padding-top: 20px;
+    transition: transform 0.3s ease;
+}
+
+#sidebar-wrapper .nav-link {
+    color: white;
+    font-size: 1.1rem;
+}
+
+#sidebar-wrapper .nav-link:hover {
+    background-color: #495057;
+    color: white;
+}
+
+#page-content-wrapper {
+    margin-left: 220px;
+    padding: 20px;
+    transition: margin-left 0.3s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    #sidebar-wrapper {
+        width: 200px; /* Slightly reduce the width on smaller screens */
+    }
+
+    #page-content-wrapper {
+        margin-left: 200px;
+    }
+}
+
+@media (max-width: 768px) {
+    #sidebar-wrapper {
+        width: 180px; /* More compact on mobile screens */
+    }
+
+    #page-content-wrapper {
+        margin-left: 180px;
+    }
+}
+
+@media (max-width: 576px) {
+    #sidebar-wrapper {
+        width: 150px; /* Even more compact for very small screens */
+    }
+
+    #page-content-wrapper {
+        margin-left: 150px;
+    }
+}
+
+.content-section {
+    display: none;
+}
+
+#themeToggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+/* Light theme */
+body.light-theme {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+/* Dark theme */
+body.dark-theme {
+    background-color: #343a40;
+    color: #ffffff;
+}
+
+body.dark-theme .btn-light {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: #ffffff;
+}
