@@ -1,6 +1,6 @@
-# ADBplus
+# DroidOps
 
-ADBplus is a modern, cross-platform desktop graphical user interface (GUI) for the Android Debug Bridge (ADB). Built with Tauri, React, and Tailwind CSS, it simplifies Android device management by providing a user-friendly interface for operations that typically require command-line interaction.
+DroidOps is a modern, cross-platform desktop graphical user interface (GUI) for the Android Debug Bridge (ADB). Built with Tauri, React, and Tailwind CSS, it simplifies Android device management by providing a user-friendly interface for operations that typically require command-line interaction.
 
 ## Features
 
@@ -30,8 +30,8 @@ Before running this project, ensure you have the following installed:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/bbinxx/adbplus.git
-    cd adbplus
+    git clone https://github.com/bbinxx/droidops.git
+    cd droidops
     ```
 
 2.  **Install dependencies:**
