@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { getConnectedDevices, getFastbootDevices } from "../lib/adb";
+import { getConnectedDevices, getFastbootDevices, startDeviceTracking } from "../lib/adb";
 import { RefreshCw, Smartphone, Monitor } from "lucide-react";
 
 export function DeviceSelector({ selectedDevice, onSelect, className }) {
@@ -26,9 +26,27 @@ export function DeviceSelector({ selectedDevice, onSelect, className }) {
     };
 
     useEffect(() => {
-        refresh();
-        const interval = setInterval(refresh, 5000); // Polling every 5s
-        return () => clearInterval(interval);
+        let cleanup = null;
+        let debounceTimer = null;
+
+        const handleChange = () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                refresh();
+            }, 500);
+        };
+
+        const initTracking = async () => {
+            await refresh(); // Initial check
+            cleanup = await startDeviceTracking(handleChange);
+        };
+
+        initTracking();
+
+        return () => {
+            if (cleanup) cleanup();
+            if (debounceTimer) clearTimeout(debounceTimer);
+        };
     }, []); // eslint-disable-line
 
     return (
