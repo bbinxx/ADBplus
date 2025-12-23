@@ -138,3 +138,34 @@ export const installPackage = async (serial, filePath) => {
 export const clearPackageData = async (serial, pkgName) => {
     return runAdbCommand(["-s", serial, "shell", "pm", "clear", pkgName]);
 };
+
+/**
+ * Starts tracking ADB device connections/disconnections.
+ * @param {function} onChange - Callback triggered when device list changes
+ * @returns {Promise<function>} - Cleanup function to stop tracking
+ */
+export const startDeviceTracking = async (onChange) => {
+    let child = null;
+
+    try {
+        const command = Command.create("adb", ["track-devices"]);
+
+        command.stdout.on("data", () => {
+            onChange();
+        });
+
+        child = await command.spawn();
+    } catch (e) {
+        console.error("Failed to start device tracking:", e);
+    }
+
+    return async () => {
+        if (child) {
+            try {
+                await child.kill();
+            } catch (e) {
+                console.error("Failed to kill tracking process:", e);
+            }
+        }
+    };
+};
