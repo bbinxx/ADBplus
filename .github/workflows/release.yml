@@ -35,6 +35,12 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
+      - name: Build Changelog
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build Tauri App
         uses: tauri-apps/tauri-action@v0
         env:
@@ -42,6 +48,6 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'DroidOps ${{ github.ref_name }}'
-          releaseBody: 'See the assets to download this version and install.'
-          draft: true
+          releaseBody: ${{ steps.build_changelog.outputs.changelog }}
+          releaseDraft: true
           prerelease: false
