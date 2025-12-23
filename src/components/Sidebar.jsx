@@ -15,7 +15,7 @@ export function Sidebar({ activeTab, setActiveTab }) {
             <div className="flex items-center gap-2 mb-8 px-2">
                 <Smartphone className="w-6 h-6 text-blue-500" />
                 <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600">
-                    ADBplus
+                    DroidOps
                 </h1>
             </div>
 
@@ -25,8 +25,8 @@ export function Sidebar({ activeTab, setActiveTab }) {
                         key={item.id}
                         onClick={() => setActiveTab(item.id)}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200 ${activeTab === item.id
-                                ? "bg-[#27272a] text-white shadow-lg shadow-black/20"
-                                : "text-gray-400 hover:bg-[#27272a]/50 hover:text-gray-200"
+                            ? "bg-[#27272a] text-white shadow-lg shadow-black/20"
+                            : "text-gray-400 hover:bg-[#27272a]/50 hover:text-gray-200"
                             }`}
                     >
                         {item.icon}
