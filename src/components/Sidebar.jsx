@@ -35,9 +35,9 @@ export function Sidebar({ activeTab, setActiveTab }) {
                 ))}
             </nav>
 
-            <div className="mt-auto pt-4 border-t border-[#27272a]">
+            {/* <div className="mt-auto pt-4 border-t border-[#27272a]">
                 <div className="text-xs text-gray-500 text-center">v2.1.0</div>
-            </div>
+            </div> */}
         </aside>
     );
 }
