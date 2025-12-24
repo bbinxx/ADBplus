@@ -54,7 +54,3 @@ npm run tauri build
 ```
 
 The build artifacts (executable files / installers) will be located in the `src-tauri/target/release/bundle` directory.
-
-## License
-
-[Add License Information Here]
