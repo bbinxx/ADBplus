@@ -9,6 +9,10 @@
     "core:default",
     "dialog:default",
     "fs:default",
+    "fs:allow-appcache-write-recursive",
+    "fs:allow-appcache-read-recursive",
+    "fs:allow-appcache-meta-recursive",
+    "core:path:default",
     "shell:allow-open",
     {
       "identifier": "shell:allow-execute",

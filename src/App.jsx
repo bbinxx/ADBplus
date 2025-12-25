@@ -6,6 +6,8 @@ import { AppManager } from "./pages/AppManager";
 import { ShellPage } from "./pages/ShellPage";
 import { FastbootPage } from "./pages/FastbootPage";
 import { SideloadPage } from "./pages/SideloadPage";
+import { FileExplorer } from "./components/FileExplorer";
+import { Gallery } from "./components/Gallery";
 import "./index.css";
 
 function App() {
@@ -16,6 +18,8 @@ function App() {
     switch (activeTab) {
       case "dashboard": return <Dashboard selectedDevice={selectedDevice} />;
       case "apps": return <AppManager selectedDevice={selectedDevice} />;
+      case "files": return <FileExplorer selectedDevice={selectedDevice} />;
+      case "gallery": return <Gallery selectedDevice={selectedDevice} />;
       case "terminal": return <ShellPage selectedDevice={selectedDevice} />;
       case "fastboot": return <FastbootPage selectedDevice={selectedDevice} />;
       case "sideload": return <SideloadPage selectedDevice={selectedDevice} />;

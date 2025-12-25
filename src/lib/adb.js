@@ -169,3 +169,123 @@ export const startDeviceTracking = async (onChange) => {
         }
     };
 };
+
+/**
+ * Lists files in a specific directory on the device
+ * @param {string} serial 
+ * @param {string} path 
+ * @returns {Promise<Array>} List of files
+ */
+export const listFiles = async (serial, path) => {
+    try {
+        const stdout = await runAdbCommand(["-s", serial, "shell", "ls", "-pl", path]);
+        const lines = stdout.split("\n");
+
+        const files = lines
+            .filter(line => line.trim() !== "" && !line.startsWith("total"))
+            .map(line => {
+                const parts = line.trim().split(/\s+/);
+                if (parts.length < 6) return null; // Not enough parts 
+                if (!/^[d-]/.test(parts[0])) return null;
+
+                let nameIndex = 7;
+                // Heuristic: Check if parts[6] or parts[7] looks like time/year
+                const timeRegex = /^(\d{2}:\d{2}|\d{4})$/;
+                if (timeRegex.test(parts[6])) nameIndex = 7;
+                else if (timeRegex.test(parts[7])) nameIndex = 8;
+                else nameIndex = 7;
+
+                if (parts.length < nameIndex + 1) return null;
+
+                const name = parts.slice(nameIndex).join(" ");
+                if (!name || name === "." || name === "..") return null;
+
+                const isDir = parts[0].startsWith("d");
+                const cleanName = name.endsWith('/') ? name.slice(0, -1) : name;
+
+                // Fix path double slashes
+                const fullPath = path.endsWith('/') ? path + cleanName : path + '/' + cleanName;
+
+                return {
+                    permissions: parts[0],
+                    owner: parts[2],
+                    group: parts[3],
+                    size: parts[4],
+                    date: parts[5] + " " + parts[6],
+                    name: cleanName,
+                    isDirectory: isDir,
+                    path: fullPath
+                };
+            })
+            .filter(f => f !== null);
+
+        return files;
+    } catch (e) {
+        console.error("List files failed", e);
+        return [];
+    }
+};
+
+export const getMediaFiles = async (serial) => {
+    try {
+        const stdout = await runAdbCommand([
+            "-s", serial, "shell", "content", "query",
+            "--uri", "content://media/external/images/media",
+            "--projection", "_id:_data:bucket_display_name:date_added:mime_type",
+            "--sort", "date_added DESC"
+        ]);
+
+        return stdout.split("\n")
+            .filter(l => l.startsWith("Row:"))
+            .map(line => {
+                const map = {};
+                // Row: 0 _id=123, _data=/path/..., key=val...
+                const content = line.substring(line.indexOf(" ") + 1); // remove "Row: "
+                const pairs = content.split(", ");
+
+                pairs.forEach(p => {
+                    const eqIdx = p.indexOf("=");
+                    if (eqIdx > -1) {
+                        const key = p.substring(0, eqIdx).trim();
+                        const val = p.substring(eqIdx + 1);
+                        map[key] = val;
+                    }
+                });
+
+                if (!map._data) return null;
+
+                return {
+                    id: map._id,
+                    path: map._data,
+                    album: map.bucket_display_name || "Unknown",
+                    date: parseInt(map.date_added) * 1000,
+                    mime: map.mime_type,
+                    name: map._data.split("/").pop()
+                };
+            })
+            .filter(i => i !== null);
+    } catch (e) {
+        console.error("Get media files failed", e);
+        return [];
+    }
+};
+
+export const pullFile = async (serial, devicePath, localPath) => {
+    return runAdbCommand(["-s", serial, "pull", devicePath, localPath]);
+};
+
+export const pushFile = async (serial, localPath, devicePath) => {
+    return runAdbCommand(["-s", serial, "push", localPath, devicePath]);
+};
+
+export const deleteFile = async (serial, devicePath) => {
+    return runAdbCommand(["-s", serial, "shell", "rm", "-rf", devicePath]);
+};
+
+export const createDirectory = async (serial, path) => {
+    return runAdbCommand(["-s", serial, "shell", "mkdir", "-p", path]);
+};
+
+export const renameFile = async (serial, oldPath, newPath) => {
+    return runAdbCommand(["-s", serial, "shell", "mv", oldPath, newPath]);
+};
