@@ -1,15 +1,17 @@
 import React from "react";
 import { Terminal, Zap, Package, Smartphone, Home, Upload, FolderOpen, Images } from "lucide-react";
+import { STRINGS } from "../data/strings";
+import { ROUTES } from "../data/config";
 
 export function Sidebar({ activeTab, setActiveTab }) {
     const navItems = [
-        { id: "dashboard", icon: <Home size={20} />, label: "Dashboard" },
-        { id: "apps", icon: <Package size={20} />, label: "App Manager" },
-        { id: "files", icon: <FolderOpen size={20} />, label: "File Explorer" },
-        { id: "gallery", icon: <Images size={20} />, label: "Gallery" },
-        { id: "terminal", icon: <Terminal size={20} />, label: "Terminal" },
-        { id: "fastboot", icon: <Zap size={20} />, label: "Fastboot" },
-        { id: "sideload", icon: <Upload size={20} />, label: "Sideload" },
+        { id: ROUTES.DASHBOARD, icon: <Home size={20} />, label: STRINGS.navigation.dashboard },
+        { id: ROUTES.APPS, icon: <Package size={20} />, label: STRINGS.navigation.apps },
+        { id: ROUTES.FILES, icon: <FolderOpen size={20} />, label: STRINGS.navigation.files },
+        { id: ROUTES.GALLERY, icon: <Images size={20} />, label: STRINGS.navigation.gallery },
+        { id: ROUTES.TERMINAL, icon: <Terminal size={20} />, label: STRINGS.navigation.terminal },
+        { id: ROUTES.FASTBOOT, icon: <Zap size={20} />, label: STRINGS.navigation.fastboot },
+        { id: ROUTES.SIDELOAD, icon: <Upload size={20} />, label: STRINGS.navigation.sideload },
     ];
 
     return (
