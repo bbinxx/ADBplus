@@ -118,12 +118,124 @@ export const getInstalledPackages = async (serial, type = "user") => {
 
     try {
         const stdout = await runAdbCommand(args);
-        return stdout.split("\n")
+        const packages = stdout.split("\n")
             .filter(l => l.startsWith("package:"))
             .map(l => l.replace("package:", "").trim())
-            .sort();
+            .filter(p => p); // Remove empty strings
+
+        // Get app labels for each package
+        const appsWithNames = await Promise.all(
+            packages.map(async (pkg) => {
+                const label = await getAppLabel(serial, pkg);
+                return {
+                    packageName: pkg,
+                    appName: label || pkg, // Fallback to package name if label not found
+                    displayName: label || pkg.split('.').pop() // Last part of package name as fallback
+                };
+            })
+        );
+
+        return appsWithNames.sort((a, b) => a.appName.localeCompare(b.appName));
     } catch (e) {
+        console.error("Failed to get packages:", e);
         return [];
+    }
+};
+
+/**
+ * Get the app label (display name) for a package
+ */
+export const getAppLabel = async (serial, packageName) => {
+    try {
+        const stdout = await runAdbCommand([
+            "-s", serial, "shell", "dumpsys", "package", packageName
+        ]);
+
+        // Look for applicationInfo line which contains the label
+        const match = stdout.match(/applicationInfo.*labelRes=0x\w+/);
+        if (!match) {
+            // Try alternative method using pm dump
+            const altOut = await runAdbCommand([
+                "-s", serial, "shell", "pm", "dump", packageName
+            ]);
+            const labelMatch = altOut.match(/labelRes=0x(\w+)/);
+            if (labelMatch) {
+                // Get string resource
+                return await getAppLabelFromResource(serial, packageName, labelMatch[1]);
+            }
+            return null;
+        }
+
+        return await getAppLabelDirectly(serial, packageName);
+    } catch (e) {
+        console.error(`Failed to get label for ${packageName}:`, e);
+        return null;
+    }
+};
+
+/**
+ * Get app label directly from aapt/package manager
+ */
+const getAppLabelDirectly = async (serial, packageName) => {
+    try {
+        // Method 1: Use pm list packages -f to get APK path, then aapt
+        const pathOut = await runAdbCommand([
+            "-s", serial, "shell", "pm", "path", packageName
+        ]);
+        const pathMatch = pathOut.match(/package:(.*\.apk)/);
+
+        if (pathMatch) {
+            const apkPath = pathMatch[1];
+            // Use aapt dump badging to get label
+            const aaptOut = await runAdbCommand([
+                "-s", serial, "shell", "aapt", "dump", "badging", apkPath
+            ]);
+            const labelMatch = aaptOut.match(/application-label:'([^']+)'/);
+            if (labelMatch) return labelMatch[1];
+        }
+    } catch (e) {
+        // aapt might not be available
+    }
+    return null;
+};
+
+const getAppLabelFromResource = async (serial, packageName, resId) => {
+    // This is complex and requires resource parsing - skip for now
+    return null;
+};
+
+/**
+ * Get app icon as base64 encoded PNG
+ */
+export const getAppIcon = async (serial, packageName) => {
+    try {
+        // Get APK path
+        const pathOut = await runAdbCommand([
+            "-s", serial, "shell", "pm", "path", packageName
+        ]);
+        const pathMatch = pathOut.match(/package:(.*\.apk)/);
+
+        if (!pathMatch) return null;
+
+        const apkPath = pathMatch[1];
+
+        // Extract icon using aapt
+        const iconOut = await runAdbCommand([
+            "-s", serial, "shell", "aapt", "dump", "badging", apkPath
+        ]);
+
+        const iconMatch = iconOut.match(/application-icon-\d+:'([^']+)'/);
+        if (!iconMatch) return null;
+
+        const iconPath = iconMatch[1];
+
+        // Pull icon to temp location and convert to base64
+        // This is complex - for now return null
+        // TODO: Implement icon extraction
+        return null;
+    } catch (e) {
+        console.error(`Failed to get icon for ${packageName}:`, e);
+        return null;
     }
 };
 
