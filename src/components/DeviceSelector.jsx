@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getConnectedDevices, getFastbootDevices, startDeviceTracking } from "../lib/adb";
 import { RefreshCw, Smartphone, Monitor } from "lucide-react";
+import { STRINGS } from "../data/strings";
 
 export function DeviceSelector({ selectedDevice, onSelect, className }) {
     const [devices, setDevices] = useState([]);
@@ -52,7 +53,7 @@ export function DeviceSelector({ selectedDevice, onSelect, className }) {
     return (
         <div className={`flex items-center gap-4 bg-[#1a1a1f] border border-[#27272a] rounded-lg p-1.5 px-3 shadow-xl ${className}`}>
             <div className="flex items-center gap-2 text-gray-400">
-                <span className="text-xs uppercase font-bold tracking-wider">Device:</span>
+                <span className="text-xs uppercase font-bold tracking-wider">{STRINGS.device.label}</span>
             </div>
 
             <div className="relative">
@@ -65,7 +66,7 @@ export function DeviceSelector({ selectedDevice, onSelect, className }) {
                     className="bg-black/30 border-none text-white text-sm rounded cursor-pointer min-w-[200px] py-1 pl-2 pr-8 appearance-none focus:ring-1 focus:ring-blue-500 outline-none"
                 >
                     {devices.length === 0 ? (
-                        <option value="">No Devices Found</option>
+                        <option value="">{STRINGS.device.noDevicesFound}</option>
                     ) : (
                         devices.map(d => (
                             <option key={d.serial} value={d.serial}>

@@ -1,13 +1,17 @@
 import React from "react";
-import { Terminal, Zap, Package, Smartphone, Home, Upload } from "lucide-react";
+import { Terminal, Zap, Package, Smartphone, Home, Upload, FolderOpen, Images } from "lucide-react";
+import { STRINGS } from "../data/strings";
+import { ROUTES, APP_CONFIG } from "../data/config";
 
 export function Sidebar({ activeTab, setActiveTab }) {
     const navItems = [
-        { id: "dashboard", icon: <Home size={20} />, label: "Dashboard" },
-        { id: "apps", icon: <Package size={20} />, label: "App Manager" },
-        { id: "terminal", icon: <Terminal size={20} />, label: "Terminal" },
-        { id: "fastboot", icon: <Zap size={20} />, label: "Fastboot" },
-        { id: "sideload", icon: <Upload size={20} />, label: "Sideload" },
+        { id: ROUTES.DASHBOARD, icon: <Home size={20} />, label: STRINGS.navigation.dashboard },
+        { id: ROUTES.APPS, icon: <Package size={20} />, label: STRINGS.navigation.apps },
+        { id: ROUTES.FILES, icon: <FolderOpen size={20} />, label: STRINGS.navigation.files },
+        { id: ROUTES.GALLERY, icon: <Images size={20} />, label: STRINGS.navigation.gallery },
+        { id: ROUTES.TERMINAL, icon: <Terminal size={20} />, label: STRINGS.navigation.terminal },
+        { id: ROUTES.FASTBOOT, icon: <Zap size={20} />, label: STRINGS.navigation.fastboot },
+        { id: ROUTES.SIDELOAD, icon: <Upload size={20} />, label: STRINGS.navigation.sideload },
     ];
 
     return (
@@ -15,7 +19,7 @@ export function Sidebar({ activeTab, setActiveTab }) {
             <div className="flex items-center gap-2 mb-8 px-2">
                 <Smartphone className="w-6 h-6 text-blue-500" />
                 <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600">
-                    DroidOps
+                    {APP_CONFIG.app.displayName}
                 </h1>
             </div>
 

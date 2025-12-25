@@ -117,13 +117,200 @@ export const getInstalledPackages = async (serial, type = "user") => {
     else if (type === 'system') args.push("-s");
 
     try {
+        // Step 1: Get all package names (fast)
         const stdout = await runAdbCommand(args);
-        return stdout.split("\n")
+        const packages = stdout.split("\n")
             .filter(l => l.startsWith("package:"))
             .map(l => l.replace("package:", "").trim())
-            .sort();
+            .filter(p => p);
+
+        if (packages.length === 0) return [];
+
+        // Step 2: Get ALL app labels AND icon paths in batch (much faster!)
+        const { labelMap, iconMap } = await getAllAppInfo(serial, packages);
+
+        // Step 3: Combine package names with labels and icons
+        const appsWithNames = packages.map(pkg => {
+            const label = labelMap[pkg];
+            const iconPath = iconMap[pkg];
+            return {
+                packageName: pkg,
+                appName: label || pkg.split('.').pop(),
+                displayName: label || pkg.split('.').pop(),
+                iconPath: iconPath || null // Path to icon on device
+            };
+        });
+
+        return appsWithNames.sort((a, b) => a.appName.localeCompare(b.appName));
     } catch (e) {
+        console.error("Failed to get packages:", e);
         return [];
+    }
+};
+
+/**
+ * Get ALL app info (labels + icon paths) at once (MUCH FASTER than individual calls!)
+ * This makes minimal commands instead of N commands for N packages
+ */
+const getAllAppInfo = async (serial, packages) => {
+    try {
+        const labelMap = {};
+        const iconMap = {};
+
+        // Batch approach: Get APK paths first
+        const pathOutput = await runAdbCommand([
+            "-s", serial, "shell", "pm", "list", "packages", "-f"
+        ]);
+
+        const apkPaths = {};
+        pathOutput.split("\n").forEach(line => {
+            // Format: package:/path/to/app.apk=com.example.app
+            const match = line.match(/package:(.+\.apk)=(.+)/);
+            if (match) {
+                apkPaths[match[2].trim()] = match[1];
+            }
+        });
+
+        // Extract labels and icon paths using dumpsys package (faster than aapt per-package)
+        try {
+            // Get full dumpsys package output ONCE
+            const dumpsysOut = await runAdbCommand([
+                "-s", serial, "shell", "dumpsys", "package", "packages"
+            ]);
+
+            // Parse the output to extract labels and resources
+            packages.forEach(pkg => {
+                // Find this package's section in dumpsys
+                const pkgSection = extractPackageSection(dumpsysOut, pkg);
+                if (pkgSection) {
+                    // Try to extract label
+                    const labelMatch = pkgSection.match(/applicationInfo.*label=([^\s,}]+)/);
+                    if (labelMatch && !labelMatch[1].startsWith('0x')) {
+                        labelMap[pkg] = labelMatch[1];
+                    }
+                }
+
+                // Get icon path from APK if we have the APK path
+                if (apkPaths[pkg]) {
+                    // Icon is inside the APK - we'll need to extract it
+                    // For now, just store the APK path - we'll extract on-demand
+                    iconMap[pkg] = apkPaths[pkg];
+                }
+            });
+        } catch (e) {
+            console.warn("dumpsys package failed, using fallbacks");
+        }
+
+        return { labelMap, iconMap };
+    } catch (e) {
+        console.error("Failed to get app info:", e);
+        return { labelMap: {}, iconMap: {} };
+    }
+};
+
+/**
+ * Extract a specific package's section from dumpsys package output
+ */
+const extractPackageSection = (dumpsysOutput, packageName) => {
+    const lines = dumpsysOutput.split('\n');
+    let inPackage = false;
+    let section = '';
+
+    for (const line of lines) {
+        if (line.includes(`Package [${packageName}]`)) {
+            inPackage = true;
+        } else if (inPackage && line.startsWith('  Package [')) {
+            // Start of next package
+            break;
+        }
+
+        if (inPackage) {
+            section += line + '\n';
+        }
+    }
+
+    return section;
+};
+
+/**
+ * Extract label from pm dump output (faster than aapt)
+ */
+const extractLabelFromDump = async (serial, packageName, dumpOutput) => {
+    try {
+        // pm dump gives us the application label in various places
+        // Look for common patterns
+
+        // Pattern 1: versionName or labelRes in the output
+        const labelMatch = dumpOutput.match(/ApplicationInfo.*label=([^\s,}]+)/);
+        if (labelMatch && labelMatch[1] && !labelMatch[1].startsWith('0x')) {
+            return labelMatch[1];
+        }
+
+        // If we only have resource ID, we'd need to decode it
+        // For now, return null to use fallback
+        return null;
+    } catch (e) {
+        return null;
+    }
+};
+
+/**
+ * FASTEST METHOD: Get app label directly using cmd package (Android 7+)
+ * Much faster than aapt or dumpsys
+ */
+export const getAppLabel = async (serial, packageName) => {
+    try {
+        // Try the fastest method first: direct package manager query
+        const output = await runAdbCommand([
+            "-s", serial, "shell",
+            `cmd package resolve-activity -a android.intent.action.MAIN -c android.intent.category.LAUNCHER ${packageName} | grep label`
+        ]);
+
+        const match = output.match(/label='([^']+)'/);
+        if (match) return match[1];
+    } catch (e) {
+        // Method failed, fall back
+    }
+
+    // Fallback: use package name's last segment
+    return null;
+};
+
+// Remove the old slow getAppLabelDirectly and getAppLabelFromResource functions
+// They are replaced by the faster methods above
+
+/**
+ * Get app icon as base64 encoded PNG
+ */
+export const getAppIcon = async (serial, packageName) => {
+    try {
+        // Get APK path
+        const pathOut = await runAdbCommand([
+            "-s", serial, "shell", "pm", "path", packageName
+        ]);
+        const pathMatch = pathOut.match(/package:(.*\.apk)/);
+
+        if (!pathMatch) return null;
+
+        const apkPath = pathMatch[1];
+
+        // Extract icon using aapt
+        const iconOut = await runAdbCommand([
+            "-s", serial, "shell", "aapt", "dump", "badging", apkPath
+        ]);
+
+        const iconMatch = iconOut.match(/application-icon-\d+:'([^']+)'/);
+        if (!iconMatch) return null;
+
+        const iconPath = iconMatch[1];
+
+        // Pull icon to temp location and convert to base64
+        // This is complex - for now return null
+        // TODO: Implement icon extraction
+        return null;
+    } catch (e) {
+        console.error(`Failed to get icon for ${packageName}:`, e);
+        return null;
     }
 };
 
@@ -168,4 +355,124 @@ export const startDeviceTracking = async (onChange) => {
             }
         }
     };
+};
+
+/**
+ * Lists files in a specific directory on the device
+ * @param {string} serial 
+ * @param {string} path 
+ * @returns {Promise<Array>} List of files
+ */
+export const listFiles = async (serial, path) => {
+    try {
+        const stdout = await runAdbCommand(["-s", serial, "shell", "ls", "-pl", path]);
+        const lines = stdout.split("\n");
+
+        const files = lines
+            .filter(line => line.trim() !== "" && !line.startsWith("total"))
+            .map(line => {
+                const parts = line.trim().split(/\s+/);
+                if (parts.length < 6) return null; // Not enough parts 
+                if (!/^[d-]/.test(parts[0])) return null;
+
+                let nameIndex = 7;
+                // Heuristic: Check if parts[6] or parts[7] looks like time/year
+                const timeRegex = /^(\d{2}:\d{2}|\d{4})$/;
+                if (timeRegex.test(parts[6])) nameIndex = 7;
+                else if (timeRegex.test(parts[7])) nameIndex = 8;
+                else nameIndex = 7;
+
+                if (parts.length < nameIndex + 1) return null;
+
+                const name = parts.slice(nameIndex).join(" ");
+                if (!name || name === "." || name === "..") return null;
+
+                const isDir = parts[0].startsWith("d");
+                const cleanName = name.endsWith('/') ? name.slice(0, -1) : name;
+
+                // Fix path double slashes
+                const fullPath = path.endsWith('/') ? path + cleanName : path + '/' + cleanName;
+
+                return {
+                    permissions: parts[0],
+                    owner: parts[2],
+                    group: parts[3],
+                    size: parts[4],
+                    date: parts[5] + " " + parts[6],
+                    name: cleanName,
+                    isDirectory: isDir,
+                    path: fullPath
+                };
+            })
+            .filter(f => f !== null);
+
+        return files;
+    } catch (e) {
+        console.error("List files failed", e);
+        return [];
+    }
+};
+
+export const getMediaFiles = async (serial) => {
+    try {
+        const stdout = await runAdbCommand([
+            "-s", serial, "shell", "content", "query",
+            "--uri", "content://media/external/images/media",
+            "--projection", "_id:_data:bucket_display_name:date_added:mime_type",
+            "--sort", "date_added DESC"
+        ]);
+
+        return stdout.split("\n")
+            .filter(l => l.startsWith("Row:"))
+            .map(line => {
+                const map = {};
+                // Row: 0 _id=123, _data=/path/..., key=val...
+                const content = line.substring(line.indexOf(" ") + 1); // remove "Row: "
+                const pairs = content.split(", ");
+
+                pairs.forEach(p => {
+                    const eqIdx = p.indexOf("=");
+                    if (eqIdx > -1) {
+                        const key = p.substring(0, eqIdx).trim();
+                        const val = p.substring(eqIdx + 1);
+                        map[key] = val;
+                    }
+                });
+
+                if (!map._data) return null;
+
+                return {
+                    id: map._id,
+                    path: map._data,
+                    album: map.bucket_display_name || "Unknown",
+                    date: parseInt(map.date_added) * 1000,
+                    mime: map.mime_type,
+                    name: map._data.split("/").pop()
+                };
+            })
+            .filter(i => i !== null);
+    } catch (e) {
+        console.error("Get media files failed", e);
+        return [];
+    }
+};
+
+export const pullFile = async (serial, devicePath, localPath) => {
+    return runAdbCommand(["-s", serial, "pull", devicePath, localPath]);
+};
+
+export const pushFile = async (serial, localPath, devicePath) => {
+    return runAdbCommand(["-s", serial, "push", localPath, devicePath]);
+};
+
+export const deleteFile = async (serial, devicePath) => {
+    return runAdbCommand(["-s", serial, "shell", "rm", "-rf", devicePath]);
+};
+
+export const createDirectory = async (serial, path) => {
+    return runAdbCommand(["-s", serial, "shell", "mkdir", "-p", path]);
+};
+
+export const renameFile = async (serial, oldPath, newPath) => {
+    return runAdbCommand(["-s", serial, "shell", "mv", oldPath, newPath]);
 };
