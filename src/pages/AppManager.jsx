@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { getInstalledPackages, uninstallPackage, clearPackageData, installPackage } from "../lib/adb";
-import { Search, Trash2, Eraser, RefreshCw, Package, Upload, Smartphone } from "lucide-react";
+import { Search, Trash2, Eraser, RefreshCw, Package, Upload } from "lucide-react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { STRINGS } from "../data/strings";
 import { confirmUninstall, confirmClearData, alertDialog } from "../utils/dialog";
+import { AppIcon } from "../components/AppIcon";
 
 export function AppManager({ selectedDevice }) {
     const [apps, setApps] = useState([]);
@@ -124,10 +125,8 @@ export function AppManager({ selectedDevice }) {
                         {filteredApps.map(app => (
                             <div key={app.packageName} className="p-4 flex items-center justify-between hover:bg-black/20 transition-colors group">
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    {/* App Icon Placeholder */}
-                                    <div className="w-12 h-12 flex-shrink-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                                        <Smartphone className="text-white" size={24} />
-                                    </div>
+                                    {/* App Icon */}
+                                    <AppIcon serial={selectedDevice.serial} app={app} />
 
                                     {/* App Info */}
                                     <div className="flex-1 min-w-0">

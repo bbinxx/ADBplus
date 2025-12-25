@@ -126,16 +126,18 @@ export const getInstalledPackages = async (serial, type = "user") => {
 
         if (packages.length === 0) return [];
 
-        // Step 2: Get ALL app labels in ONE command using dumpsys (much faster!)
-        const labelMap = await getAllAppLabels(serial, packages);
+        // Step 2: Get ALL app labels AND icon paths in batch (much faster!)
+        const { labelMap, iconMap } = await getAllAppInfo(serial, packages);
 
-        // Step 3: Combine package names with labels
+        // Step 3: Combine package names with labels and icons
         const appsWithNames = packages.map(pkg => {
             const label = labelMap[pkg];
+            const iconPath = iconMap[pkg];
             return {
                 packageName: pkg,
-                appName: label || pkg.split('.').pop(), // Use last part of package as fallback
-                displayName: label || pkg.split('.').pop()
+                appName: label || pkg.split('.').pop(),
+                displayName: label || pkg.split('.').pop(),
+                iconPath: iconPath || null // Path to icon on device
             };
         });
 
@@ -147,17 +149,15 @@ export const getInstalledPackages = async (serial, type = "user") => {
 };
 
 /**
- * Get ALL app labels at once using dumpsys (MUCH FASTER than individual aapt calls!)
- * This makes ONE command instead of N commands for N packages
+ * Get ALL app info (labels + icon paths) at once (MUCH FASTER than individual calls!)
+ * This makes minimal commands instead of N commands for N packages
  */
-const getAllAppLabels = async (serial, packages) => {
+const getAllAppInfo = async (serial, packages) => {
     try {
-        // Use cmd package to get package info - faster than dumpsys for multiple packages
-        // Alternative: use dumpsys package packages (gets everything but is very verbose)
-
         const labelMap = {};
+        const iconMap = {};
 
-        // Batch approach: Get APK paths first, then extract labels
+        // Batch approach: Get APK paths first
         const pathOutput = await runAdbCommand([
             "-s", serial, "shell", "pm", "list", "packages", "-f"
         ]);
@@ -171,34 +171,65 @@ const getAllAppLabels = async (serial, packages) => {
             }
         });
 
-        // Method 1: Try using cmd package (faster, available on Android 7+)
+        // Extract labels and icon paths using dumpsys package (faster than aapt per-package)
         try {
-            for (const pkg of packages) {
-                if (!apkPaths[pkg]) continue;
+            // Get full dumpsys package output ONCE
+            const dumpsysOut = await runAdbCommand([
+                "-s", serial, "shell", "dumpsys", "package", "packages"
+            ]);
 
-                // Use a simpler, faster approach
-                const result = await runAdbCommand([
-                    "-s", serial, "shell",
-                    `pm dump ${pkg} | grep -E "labelRes=|packageName="`
-                ]);
-
-                // This is still per-package but doesn't use aapt
-                // Extract from the pm dump output
-                const appLabel = await extractLabelFromDump(serial, pkg, result);
-                if (appLabel) {
-                    labelMap[pkg] = appLabel;
+            // Parse the output to extract labels and resources
+            packages.forEach(pkg => {
+                // Find this package's section in dumpsys
+                const pkgSection = extractPackageSection(dumpsysOut, pkg);
+                if (pkgSection) {
+                    // Try to extract label
+                    const labelMatch = pkgSection.match(/applicationInfo.*label=([^\s,}]+)/);
+                    if (labelMatch && !labelMatch[1].startsWith('0x')) {
+                        labelMap[pkg] = labelMatch[1];
+                    }
                 }
-            }
+
+                // Get icon path from APK if we have the APK path
+                if (apkPaths[pkg]) {
+                    // Icon is inside the APK - we'll need to extract it
+                    // For now, just store the APK path - we'll extract on-demand
+                    iconMap[pkg] = apkPaths[pkg];
+                }
+            });
         } catch (e) {
-            // Fallback: if pm dump fails, we'll just use package names
-            console.warn("Fast label extraction failed, using package names");
+            console.warn("dumpsys package failed, using fallbacks");
         }
 
-        return labelMap;
+        return { labelMap, iconMap };
     } catch (e) {
-        console.error("Failed to get app labels:", e);
-        return {};
+        console.error("Failed to get app info:", e);
+        return { labelMap: {}, iconMap: {} };
     }
+};
+
+/**
+ * Extract a specific package's section from dumpsys package output
+ */
+const extractPackageSection = (dumpsysOutput, packageName) => {
+    const lines = dumpsysOutput.split('\n');
+    let inPackage = false;
+    let section = '';
+
+    for (const line of lines) {
+        if (line.includes(`Package [${packageName}]`)) {
+            inPackage = true;
+        } else if (inPackage && line.startsWith('  Package [')) {
+            // Start of next package
+            break;
+        }
+
+        if (inPackage) {
+            section += line + '\n';
+        }
+    }
+
+    return section;
 };
 
 /**

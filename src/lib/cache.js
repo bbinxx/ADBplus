@@ -65,3 +65,53 @@ export const getThumbnail = async (serial, filePath, fileName) => {
         return null;
     }
 };
+
+/**
+ * Gets app icon from device and caches it locally
+ * @param {string} serial - Device serial
+ * @param {string} packageName - Package name
+ * @param {string} iconPath - Path to icon on device (from APK)
+ * @returns{Promise<string|null>} - Local asset URL or null
+ */
+export const getAppIcon = async (serial, packageName, iconPath) => {
+    try {
+        const cacheDir = await appCacheDir();
+        const iconDir = await join(cacheDir, "app-icons");
+
+        const dirExists = await exists(iconDir);
+        if (!dirExists) {
+            await mkdir(iconDir, { recursive: true });
+        }
+
+        // Use package name + hash of icon path for cache key
+        const safeName = packageName.replace(/\./g, '_') + '.png';
+        const localPath = await join(iconDir, safeName);
+
+        const isCached = await exists(localPath);
+        if (isCached) {
+            return convertFileSrc(localPath);
+        }
+
+        // Not cached, queue download
+        return queue.add(async () => {
+            try {
+                // Double check
+                if (await exists(localPath)) return convertFileSrc(localPath);
+
+                console.log(`Caching icon for: ${packageName}`);
+
+                // Pull icon from device
+                await pullFile(serial, iconPath, localPath);
+
+                return convertFileSrc(localPath);
+            } catch (e) {
+                console.error(`Failed to cache icon for ${packageName}:`, e);
+                return null;
+            }
+        });
+
+    } catch (e) {
+        console.error("App icon error:", e);
+        return null;
+    }
+};
