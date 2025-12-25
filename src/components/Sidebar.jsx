@@ -1,7 +1,7 @@
 import React from "react";
 import { Terminal, Zap, Package, Smartphone, Home, Upload, FolderOpen, Images } from "lucide-react";
 import { STRINGS } from "../data/strings";
-import { ROUTES } from "../data/config";
+import { ROUTES, APP_CONFIG } from "../data/config";
 
 export function Sidebar({ activeTab, setActiveTab }) {
     const navItems = [
@@ -19,7 +19,7 @@ export function Sidebar({ activeTab, setActiveTab }) {
             <div className="flex items-center gap-2 mb-8 px-2">
                 <Smartphone className="w-6 h-6 text-blue-500" />
                 <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600">
-                    DroidOps
+                    {APP_CONFIG.app.displayName}
                 </h1>
             </div>
 

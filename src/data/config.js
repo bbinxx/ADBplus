@@ -1,5 +1,16 @@
+import pkg from '../../package.json';
+
 export const APP_CONFIG = {
-    version: "0.1.2",
+    // App Metadata (from package.json)
+    app: {
+        name: "DroidOps",
+        displayName: "DroidOps",
+        version: pkg.version,
+        author: "bbinxx",
+        repository: "https://github.com/bbinxx/droidops"
+    },
+
+    version: pkg.version,
     name: "DroidOps",
 
     // UI Configuration

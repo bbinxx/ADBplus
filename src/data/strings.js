@@ -1,6 +1,9 @@
+// Note: App metadata (name, version) is in config.js (imported from package.json)
+// This keeps it as single source of truth. Access via: import { APP_CONFIG } from './config'
+
 export const STRINGS = {
     app: {
-        title: "DroidOps",
+        title: "DroidOps", // Display name - also available as APP_CONFIG.app.displayName
         tagline: "Professional Android Device Manager"
     },
 
